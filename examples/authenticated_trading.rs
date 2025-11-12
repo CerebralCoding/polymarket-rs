@@ -55,8 +55,7 @@ async fn main() -> Result<()> {
     // Step 4: Create a limit order (example - NOT posted)
     println!("\n4. Creating a limit order (example)...");
 
-    // Replace with actual token ID
-    let token_id = "21742633143463906290569050155826241533067272736897614950488156847949938836455";
+    let token_id = "109648317055340591503076024421581448189531885907475125926203413622318314876012";
 
     let _order_args = OrderArgs::new(
         token_id,

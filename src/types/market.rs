@@ -16,14 +16,15 @@ pub struct Market {
     pub accepting_orders: bool,
     pub question_id: String,
     pub question: String,
+    #[serde(deserialize_with = "super::serde_helpers::deserialize_decimal")]
     pub minimum_order_size: Decimal,
+    #[serde(deserialize_with = "super::serde_helpers::deserialize_decimal")]
     pub minimum_tick_size: Decimal,
     pub description: String,
     pub category: Option<String>,
     pub end_date_iso: Option<String>,
     pub game_start_time: Option<String>,
     pub market_slug: String,
-    pub seconds_delay: Decimal,
     pub icon: String,
     pub fpmm: String,
     pub neg_risk: bool,
@@ -37,10 +38,10 @@ pub struct SimplifiedMarket {
     pub condition_id: String,
     pub tokens: [Token; 2],
     pub rewards: Rewards,
-    pub min_incentive_size: Option<String>,
-    pub max_incentive_spread: Option<String>,
     pub active: bool,
     pub closed: bool,
+    pub archived: bool,
+    pub accepting_orders: bool,
 }
 
 /// Token within a market
@@ -54,12 +55,10 @@ pub struct Token {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rewards {
     pub rates: Option<Vec<RewardsRates>>,
+    #[serde(deserialize_with = "super::serde_helpers::deserialize_decimal")]
     pub min_size: Decimal,
+    #[serde(deserialize_with = "super::serde_helpers::deserialize_decimal")]
     pub max_spread: Decimal,
-    pub event_start_date: Option<String>,
-    pub event_end_date: Option<String>,
-    pub in_game_multiplier: Option<Decimal>,
-    pub reward_epoch: Option<Decimal>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -72,8 +71,8 @@ pub struct RewardsRates {
 /// Paginated markets response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MarketsResponse {
-    pub limit: Decimal,
-    pub count: Decimal,
+    pub limit: u64,
+    pub count: u64,
     pub next_cursor: Option<String>,
     pub data: Vec<Market>,
 }
@@ -81,8 +80,8 @@ pub struct MarketsResponse {
 /// Paginated simplified markets response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SimplifiedMarketsResponse {
-    pub limit: Decimal,
-    pub count: Decimal,
+    pub limit: u64,
+    pub count: u64,
     pub next_cursor: Option<String>,
     pub data: Vec<SimplifiedMarket>,
 }
@@ -129,6 +128,7 @@ pub struct SpreadResponse {
 /// Tick size response
 #[derive(Debug, Deserialize)]
 pub struct TickSizeResponse {
+    #[serde(deserialize_with = "super::serde_helpers::deserialize_decimal")]
     pub minimum_tick_size: Decimal,
 }
 

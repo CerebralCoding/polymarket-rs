@@ -6,6 +6,7 @@ use crate::types::{
     PriceHistoryResponse, PriceResponse, SimplifiedMarketsResponse, SpreadResponse,
     TickSizeResponse, TokenId,
 };
+use crate::Side;
 
 /// Client for public market data APIs
 ///
@@ -61,11 +62,9 @@ impl PublicClient {
     /// # Arguments
     /// * `token_id` - The token ID to query
     /// * `side` - Optional side (BUY or SELL)
-    pub async fn get_price(&self, token_id: &TokenId, side: Option<&str>) -> Result<PriceResponse> {
+    pub async fn get_price(&self, token_id: &TokenId, side: Side) -> Result<PriceResponse> {
         let mut path = format!("/price?token_id={}", token_id.as_str());
-        if let Some(side) = side {
-            path.push_str(&format!("&side={}", side));
-        }
+        path.push_str(&format!("&side={}", side.as_str()));
         self.http_client.get(&path, None).await
     }
 

@@ -1,6 +1,6 @@
 use polymarket_rs::client::PublicClient;
 use polymarket_rs::types::TokenId;
-use polymarket_rs::Result;
+use polymarket_rs::{Result, Side};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -16,8 +16,10 @@ async fn main() -> Result<()> {
     let time = client.get_server_time().await?;
     println!("Server time: {:?}\n", time);
 
-    // Example token ID (replace with a real token ID)
-    let token_id = TokenId::new("21742633143463906290569050155826241533067272736897614950488156847949938836455");
+    // Example token ID
+    let token_id = TokenId::new(
+        "7045107161367241233811523851106536676632348173555291268726302515224841822187",
+    );
 
     // Get midpoint price
     println!("Getting midpoint price for token {}...", token_id);
@@ -28,7 +30,7 @@ async fn main() -> Result<()> {
 
     // Get current price
     println!("Getting current price...");
-    match client.get_price(&token_id, None).await {
+    match client.get_price(&token_id, Side::Buy).await {
         Ok(price) => println!("Current price: {}\n", price.price),
         Err(e) => println!("Error getting price: {}\n", e),
     }
@@ -65,15 +67,13 @@ async fn main() -> Result<()> {
         Err(e) => println!("Error getting order book: {}\n", e),
     }
 
-    // Get simplified markets
-    println!("Getting simplified markets...");
-    match client.get_simplified_markets(None).await {
+    // Get sampling markets
+    println!("Getting sampling markets...");
+    match client.get_sampling_markets(None).await {
         Ok(markets) => {
             println!("Retrieved {} markets", markets.data.len());
             if let Some(market) = markets.data.first() {
                 println!("First market condition ID: {}", market.condition_id);
-                println!("  Active: {}", market.active);
-                println!("  Closed: {}", market.closed);
             }
         }
         Err(e) => println!("Error getting markets: {}", e),
