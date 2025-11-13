@@ -18,7 +18,6 @@ This project is a complete rewrite of [polymarket-rs-client](https://github.com/
 ## Features
 
 - **Full Authentication Support** - L1 (EIP-712) and L2 (HMAC) authentication
-- **Type-Safe** - Strongly typed IDs (`TokenId`, `OrderId`, `ConditionId`) prevent mistakes
 - **Builder Pattern** - Fluent APIs for configuration and order creation
 - **Async/Await** - Built on `tokio` for high-performance async operations
 - **Decimal Precision** - Accurate financial calculations with `rust_decimal`
@@ -31,7 +30,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-polymarket-rs = "0.1.0"
+polymarket-rs = { git = "https://github.com/pawsengineer/polymarket-rs.git" }
 ```
 
 ## Quick Start
@@ -143,9 +142,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### PolyProxy Wallets (Email/Magic Wallets)
+### PolyProxy & PolyGnosisSafe
 
-For PolyProxy wallets (like email-based Magic wallets), you need to specify both the EOA signer and the proxy wallet address:
+For PolyProxy and PolyGnosisSafe wallets, you need to specify both the EOA signer and the proxy wallet address:
 
 ```rust
 use alloy_primitives::Address;
@@ -164,7 +163,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let signer = PrivateKeySigner::from_str(&private_key)?;
 
     // Your proxy wallet address (holds the funds)
-    let proxy_wallet_address = Address::from_str("0xYourProxyWalletAddress")?;
+    let proxy_wallet_address = Address::from_str("{ProxyWalletAddress}")?;
 
     let chain_id = 137;
     let host = "https://clob.polymarket.com";
@@ -180,10 +179,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api_creds = auth_client.create_or_derive_api_key().await?;
 
-    // OrderBuilder uses PolyProxy signature type and proxy wallet as funder
+    // OrderBuilder uses PolyGnosisSafe signature type and proxy wallet as funder
     let order_builder = OrderBuilder::new(
-        signer.clone(),               // EOA signer (no Box::new!)
-        Some(SignatureType::PolyProxy),
+        signer.clone(),               // EOA signer
+        Some(SignatureType::PolyGnosisSafe),
         Some(proxy_wallet_address),   // Proxy wallet holds funds
     );
 
@@ -195,40 +194,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         order_builder,
     );
 
-    // PolyProxy wallets have automatic allowance management
+    // PolyProxy & PolyGnosisSafe wallets have automatic allowance management
     // No manual ERC-20 approvals needed!
 
     Ok(())
 }
 ```
 
-**Key Points for PolyProxy:**
-
-- `signer`: Your EOA private key (delegated signer for API authentication)
-- `funder`: Your proxy wallet address (holds the actual funds)
-- `SignatureType::PolyProxy`: Tells the API to validate the delegation
-- **No manual allowances needed** - the proxy contract manages approvals automatically
-
-### Environment Setup
-
-```bash
-# Required for authenticated operations
-export PRIVATE_KEY="0x..."
-
-# Optional: specify custom API host
-export POLYMARKET_HOST="https://clob.polymarket.com"
-```
-
 ## Examples
 
 See the [examples/](examples/) directory for complete working examples:
 
-- [`public_data.rs`](examples/public_data.rs) - Public market data queries
+- [`clob_data.rs`](examples/clob_data.rs) - CLOB market data queries (prices, order books, markets)
+- [`public_data.rs`](examples/public_data.rs) - Position and portfolio data queries
 - [`authenticated_trading.rs`](examples/authenticated_trading.rs) - Authenticated trading operations
 
 Run an example:
 
 ```bash
+cargo run --example clob_data
 cargo run --example public_data
 PRIVATE_KEY="0x..." cargo run --example authenticated_trading
 ```
