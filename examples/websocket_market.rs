@@ -9,8 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Token IDs to subscribe to
     let token_ids = vec![
         // "Yes" token for "Fed decreases interest rates by 25 bps after December 2025 meeting?"
-        "87769991026114894163580777793845523168226980076553814689875238288185044414090"
-            .to_string(),
+        "87769991026114894163580777793845523168226980076553814689875238288185044414090".to_string(),
     ];
 
     println!("Connecting to CLOB WebSocket...");
@@ -69,6 +68,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("  Trade: {:?} {} @ {}", trade.side, trade.size, trade.price);
                         println!("  Fee: {} bps", trade.fee_rate_bps);
                         println!("  TX: {}", trade.transaction_hash);
+                        println!();
+                    }
+                    WsEvent::TickSizeChange(tick) => {
+                        println!("[Tick Size Change Event #{}]", event_count);
+                        println!("  Market: {}", tick.market);
+                        println!("  New Tick Size: {}", tick.new_tick_size);
                         println!();
                     }
                 }

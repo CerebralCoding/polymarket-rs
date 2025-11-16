@@ -53,3 +53,6 @@ pub use orders::OrderBuilder;
 
 // Re-export signer trait
 pub use signing::EthSigner;
+
+// Re-export stream extension traits
+pub use futures_util::StreamExt;

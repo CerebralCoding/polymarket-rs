@@ -88,6 +88,45 @@ impl AuthenticatedClient {
         self.api_creds.as_ref()
     }
 
+    /// Set the API credentials
+    ///
+    /// Updates the API credentials for this client. This is useful when you want to:
+    /// - Initialize the client without credentials
+    /// - Fetch credentials later using `create_api_key()` or `derive_api_key()`
+    /// - Update credentials without recreating the client
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use polymarket_rs::AuthenticatedClient;
+    /// # use alloy_signer_local::PrivateKeySigner;
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let signer = PrivateKeySigner::random();
+    /// // Create client without credentials
+    /// let mut auth_client = AuthenticatedClient::new(
+    ///     "https://clob.polymarket.com",
+    ///     signer,
+    ///     137,
+    ///     None,  // No credentials initially
+    ///     None,
+    /// );
+    ///
+    /// // Fetch credentials using L1 authentication
+    /// let creds = auth_client.create_or_derive_api_key().await?;
+    ///
+    /// // Set the credentials
+    /// auth_client.set_api_creds(Some(creds));
+    ///
+    /// // Now you can use L2 authenticated methods
+    /// let keys = auth_client.get_api_keys().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn set_api_creds(&mut self, api_creds: Option<ApiCreds>) {
+        self.api_creds = api_creds;
+    }
+
     /// Create a new API key (L1 authentication required)
     ///
     /// This creates a new API key for the signer's address.

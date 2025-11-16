@@ -11,12 +11,14 @@ use super::Side;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WsEvent {
-    /// Full order book snapshot
+    /// Emitted When: First subscribed to a market / when there is a trade that affects the book
     Book(BookEvent),
-    /// Incremental order book update
+    /// Emitted When: A new order is placed / an order is cancelled
     PriceChange(PriceChangeEvent),
-    /// Last trade price update
+    /// Emitted When: When a maker and taker order is matched creating a trade event.
     LastTradePrice(LastTradePriceEvent),
+    /// Emitted When: The minimum tick size of the market changes. This happens when the book’s price reaches the limits: price > 0.96 or price < 0.04
+    TickSizeChange(TickSizeChangeEvent),
 }
 
 /// Full order book snapshot event
@@ -108,6 +110,25 @@ pub struct LastTradePriceEvent {
     pub timestamp: String,
     /// Transaction hash on blockchain
     pub transaction_hash: String,
+}
+
+/// Tick size change event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TickSizeChangeEvent {
+    /// Event type discriminator (always "tick_size_change")
+    pub event_type: String,
+    /// Token/Asset ID
+    pub asset_id: String,
+    /// Market ID
+    pub market: String,
+    /// Previous tick size
+    #[serde(with = "rust_decimal::serde::str")]
+    pub old_tick_size: Decimal,
+    /// New tick size
+    #[serde(with = "rust_decimal::serde::str")]
+    pub new_tick_size: Decimal,
+    /// Timestamp of the change
+    pub timestamp: String,
 }
 
 // ============================================================================
