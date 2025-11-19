@@ -46,6 +46,79 @@ pub struct MarketWsClient {
     ws_url: String,
 }
 
+/// Parse a WebSocket message into a WsEvent
+///
+/// This is a helper function that handles the parsing logic shared by both
+/// subscribe() and subscribe_with_handle() methods.
+fn parse_ws_message(
+    msg: std::result::Result<Message, tokio_tungstenite::tungstenite::Error>,
+) -> Option<Result<WsEvent>> {
+    match msg {
+        Ok(Message::Text(text)) => {
+            // Skip empty or whitespace-only messages
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                return None;
+            }
+
+            // Skip PING/PONG messages sent as text (some servers do this)
+            if trimmed.eq_ignore_ascii_case("ping") || trimmed.eq_ignore_ascii_case("pong") {
+                return None;
+            }
+
+            // The server can send either a single object or an array
+            // Try to parse as array first
+            if let Ok(events) = serde_json::from_str::<Vec<serde_json::Value>>(&text) {
+                // Got an array, take the first event
+                if let Some(first) = events.first() {
+                    match serde_json::from_value::<WsEvent>(first.clone()) {
+                        Ok(event) => return Some(Ok(event)),
+                        Err(e) => return Some(Err(Error::Json(e))),
+                    }
+                } else {
+                    // Empty array, ignore
+                    return None;
+                }
+            }
+
+            // Try parsing as single object
+            match serde_json::from_str::<WsEvent>(&text) {
+                Ok(event) => Some(Ok(event)),
+                Err(e) => {
+                    // Log unexpected message format for debugging
+                    log::warn!(
+                        "Unexpected WebSocket message (first 200 chars): {}",
+                        &text.chars().take(200).collect::<String>()
+                    );
+                    Some(Err(Error::Json(e)))
+                }
+            }
+        }
+        Ok(Message::Close(_)) => {
+            // Connection closed gracefully
+            Some(Err(Error::ConnectionClosed))
+        }
+        Ok(Message::Ping(_)) | Ok(Message::Pong(_)) => {
+            // Ignore ping/pong frames (handled automatically)
+            None
+        }
+        Ok(Message::Binary(_)) => {
+            // Unexpected binary message
+            Some(Err(Error::WebSocket(
+                "Unexpected binary message".to_string(),
+            )))
+        }
+        Ok(Message::Frame(_)) => {
+            // Raw frame (shouldn't happen)
+            None
+        }
+        Err(e) => {
+            // WebSocket error
+            Some(Err(Error::WebSocket(e.to_string())))
+        }
+    }
+}
+
 impl MarketWsClient {
     /// Default WebSocket URL for market data
     const DEFAULT_WS_URL: &'static str = "wss://ws-subscriptions-clob.polymarket.com/ws/market";
@@ -129,74 +202,8 @@ impl MarketWsClient {
         // Create subscription handle
         let handle = SubscriptionHandle { current_tokens };
 
-        // Return stream that parses events
-        let stream = read.filter_map(|msg| async move {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    // Skip empty or whitespace-only messages
-                    let trimmed = text.trim();
-                    if trimmed.is_empty() {
-                        return None;
-                    }
-
-                    // Skip PING/PONG messages sent as text (some servers do this)
-                    if trimmed.eq_ignore_ascii_case("ping") || trimmed.eq_ignore_ascii_case("pong")
-                    {
-                        return None;
-                    }
-
-                    // The server can send either a single object or an array
-                    // Try to parse as array first
-                    if let Ok(events) = serde_json::from_str::<Vec<serde_json::Value>>(&text) {
-                        // Got an array, take the first event
-                        if let Some(first) = events.first() {
-                            match serde_json::from_value::<WsEvent>(first.clone()) {
-                                Ok(event) => return Some(Ok(event)),
-                                Err(e) => return Some(Err(Error::Json(e))),
-                            }
-                        } else {
-                            // Empty array, ignore
-                            return None;
-                        }
-                    }
-
-                    // Try parsing as single object
-                    match serde_json::from_str::<WsEvent>(&text) {
-                        Ok(event) => Some(Ok(event)),
-                        Err(e) => {
-                            // Log unexpected message format for debugging
-                            log::warn!(
-                                "Unexpected WebSocket message (first 200 chars): {}",
-                                &text.chars().take(200).collect::<String>()
-                            );
-                            Some(Err(Error::Json(e)))
-                        }
-                    }
-                }
-                Ok(Message::Close(_)) => {
-                    // Connection closed gracefully
-                    Some(Err(Error::ConnectionClosed))
-                }
-                Ok(Message::Ping(_)) | Ok(Message::Pong(_)) => {
-                    // Ignore ping/pong frames (handled automatically)
-                    None
-                }
-                Ok(Message::Binary(_)) => {
-                    // Unexpected binary message
-                    Some(Err(Error::WebSocket(
-                        "Unexpected binary message".to_string(),
-                    )))
-                }
-                Ok(Message::Frame(_)) => {
-                    // Raw frame (shouldn't happen)
-                    None
-                }
-                Err(e) => {
-                    // WebSocket error
-                    Some(Err(Error::WebSocket(e.to_string())))
-                }
-            }
-        });
+        // Return stream that parses events using the shared helper function
+        let stream = read.filter_map(|msg| async move { parse_ws_message(msg) });
 
         Ok((Box::pin(stream), handle))
     }
@@ -252,74 +259,8 @@ impl MarketWsClient {
         // Drop the write half since we don't need to send any more messages
         drop(write);
 
-        // Return stream that parses events
-        let stream = read.filter_map(|msg| async move {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    // Skip empty or whitespace-only messages
-                    let trimmed = text.trim();
-                    if trimmed.is_empty() {
-                        return None;
-                    }
-
-                    // Skip PING/PONG messages sent as text (some servers do this)
-                    if trimmed.eq_ignore_ascii_case("ping") || trimmed.eq_ignore_ascii_case("pong")
-                    {
-                        return None;
-                    }
-
-                    // The server can send either a single object or an array
-                    // Try to parse as array first
-                    if let Ok(events) = serde_json::from_str::<Vec<serde_json::Value>>(&text) {
-                        // Got an array, take the first event
-                        if let Some(first) = events.first() {
-                            match serde_json::from_value::<WsEvent>(first.clone()) {
-                                Ok(event) => return Some(Ok(event)),
-                                Err(e) => return Some(Err(Error::Json(e))),
-                            }
-                        } else {
-                            // Empty array, ignore
-                            return None;
-                        }
-                    }
-
-                    // Try parsing as single object
-                    match serde_json::from_str::<WsEvent>(&text) {
-                        Ok(event) => Some(Ok(event)),
-                        Err(e) => {
-                            // Log unexpected message format for debugging
-                            log::warn!(
-                                "Unexpected WebSocket message (first 200 chars): {}",
-                                &text.chars().take(200).collect::<String>()
-                            );
-                            Some(Err(Error::Json(e)))
-                        }
-                    }
-                }
-                Ok(Message::Close(_)) => {
-                    // Connection closed gracefully
-                    Some(Err(Error::ConnectionClosed))
-                }
-                Ok(Message::Ping(_)) | Ok(Message::Pong(_)) => {
-                    // Ignore ping/pong frames (handled automatically)
-                    None
-                }
-                Ok(Message::Binary(_)) => {
-                    // Unexpected binary message
-                    Some(Err(Error::WebSocket(
-                        "Unexpected binary message".to_string(),
-                    )))
-                }
-                Ok(Message::Frame(_)) => {
-                    // Raw frame (shouldn't happen)
-                    None
-                }
-                Err(e) => {
-                    // WebSocket error
-                    Some(Err(Error::WebSocket(e.to_string())))
-                }
-            }
-        });
+        // Return stream that parses events using the shared helper function
+        let stream = read.filter_map(|msg| async move { parse_ws_message(msg) });
 
         Ok(Box::pin(stream))
     }
