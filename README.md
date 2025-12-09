@@ -3,14 +3,6 @@
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-blue.svg)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 
-> [!NOTE]
-> This library is under active development and considered alpha quality.
->
-> - Breaking changes may occur in future updates without prior notice
-> - API signatures, types, and module structures are subject to change
-> - Not recommended for production use yet
-> - Use at your own risk
-
 A modern, type-safe Rust client library for the [Polymarket](https://polymarket.com) CLOB (Central Limit Order Book) and Data API.
 
 This project is a complete rewrite of [polymarket-rs-client](https://github.com/TechieBoy/polymarket-rs-client) with improved ergonomics, additional API methods, and removal of generic type parameters for a cleaner API surface.
